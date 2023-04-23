@@ -2,11 +2,11 @@ const { Message } = require('discord.js');
 const GuildSettings = require('../../models/guildSettings');
 
 module.exports = {
-  data: {
-    name: 'toggleprofanityfilter',
-    description: 'Toggle the profanity filter on or off',
-  },
-  async execute(interaction = new Message()) {
+  name: 'toggleprofanityfilter',
+  description: 'Toggles the profanity filter on/off in the server.',
+  usage: '',
+  permissions: ['MANAGE_GUILD'],
+  execute: async (interaction) => {
     const { channel } = interaction;
 
     if (!channel) {

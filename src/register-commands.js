@@ -38,6 +38,10 @@ const rest = new REST({ version: '9' }).setToken(token);
 
 (async () => {
   try {
+    console.log('Started deleting application (/) commands.');
+
+    console.log('Finished deleting application (/) commands.');
+
     console.log('Started refreshing application (/) commands.');
 
     await rest.put(
