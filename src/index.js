@@ -4,6 +4,7 @@ const path = require('path');
 const commandsPath = path.join(__dirname, 'commands');
 const { Client, Intents, Permissions } = require('discord.js');
 const { MongoClient } = require('mongodb');
+const handleInteractionCreate = require('./events/interactionCreate');
 const uri = process.env.MONGO_URI;
 
 const client = new Client({
@@ -15,53 +16,42 @@ const client = new Client({
   partials: ['MESSAGE', 'CHANNEL'],
 });
 
+client.commands = new Map();
 client.guildSettings = new Map();
 client.snipes = new Map();
 
-client.on('ready', () => {
-  console.log(`✔️  ${client.user.tag} is online!`);
-
-  const eventFiles = fs.readdirSync('./src/events').filter(file => file.endsWith('.js'));
-
-  for (const file of eventFiles) {
-    console.log(`Loading event file: ${file}`);
-    const event = require(`./events/${file}`);
-    
-    if (typeof event !== 'function') {
-      console.error(`Event file ${file} does not export a function. Please check its content.`);
-      continue;
-    }
-
-    client.on(file.split('.')[0], (...args) => event(client, ...args));
-  }
-});
-
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return;
-
-  const command = fs.readdirSync(commandsPath, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-    .flatMap(dirent => fs.readdirSync(path.join(commandsPath, dirent.name)).filter(file => file.endsWith('.js')).map(file => ({ folder: dirent.name, name: file })))
-    .find((cmd) => cmd.name === `${interaction.commandName}.js` && cmd.folder);
-
-  if (!command) {
-    await interaction.reply({ content: 'Unknown command', ephemeral: true });
-    return;
-  }
-
-  try {
-    const commandPath = path.join(commandsPath, command.folder, command.name);
-    const commandFile = require(commandPath);
-    
-    // Add the client to the command file
-    commandFile.client = client;
-
-    await commandFile.execute(interaction);
-  } catch (error) {
-    console.error(error);
-    await interaction.reply({ content: 'An error occurred while executing this command', ephemeral: true });
-  }
+  await handleInteractionCreate(interaction, client);
 });
+
+
+// Load commands
+const commandFolders = fs.readdirSync(commandsPath, { withFileTypes: true })
+  .filter(dirent => dirent.isDirectory())
+  .map(dirent => dirent.name);
+
+for (const folder of commandFolders) {
+  const commandFiles = fs.readdirSync(path.join(commandsPath, folder)).filter(file => file.endsWith('.js'));
+  for (const file of commandFiles) {
+    const command = require(path.join(commandsPath, folder, file));
+    client.commands.set(command.name, command);
+  }
+}
+
+// Load events
+const eventFiles = fs.readdirSync('./src/events').filter(file => file.endsWith('.js'));
+for (const file of eventFiles) {
+  console.log(`Loading event file: ${file}`);
+  const event = require(`./events/${file}`);
+
+  if (typeof event !== 'function') {
+    console.error(`Event file ${file} does not export a function. Please check its content.`);
+    continue;
+  }
+
+  client.on(file.split('.')[0], (...args) => event(...args, client));
+}
+
 
 client.on('error', (error) => {
   console.error(error);

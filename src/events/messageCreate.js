@@ -1,35 +1,39 @@
-const Guild = require('../models/guild');
-const Filter = require('bad-words');
-const badWordsFilter = new Filter({ list: ['bitch', 'bastard', 'nobr'] });
+module.exports = async (message) => {
+  if (!message.author || message.author.bot) return;
 
-module.exports = async (client, message) => {
-  if (message.author.bot) return;
+  const { content } = message;
 
-  // Fetch the guild settings from the database
-  const guildSettings = await Guild.findOne({ guildId: message.guild.id });
-  console.log("Guild settings:", guildSettings); // Add this line
-  if (!guildSettings) return;
+  if (content.includes('discord.gg/')) {
+    await message.delete();
+    return message.channel.send('Invites are not allowed in this server!');
+  }
 
-  // Check if the profanity filter is enabled
-  if (guildSettings.profanityFilter) {
-    const hasBadWords = badWordsFilter.isProfane(message.content);
-    console.log("Message content:", message.content);
-    console.log("Has bad words:", hasBadWords);
+  const guildSettings = message.client.guildSettings.get(message.guild.id);
+  const prefix = guildSettings.prefix;
 
-    if (hasBadWords) {
-      // Check if the message exists and the bot has permission to delete it
-      if (message.deletable && message.channel.permissionsFor(client.user).has('MANAGE_MESSAGES')) {
-        message.delete()
-          .catch(console.error);
-      }
-      message.reply('Watch your language! Profanity is not allowed.')
-        .then(msg => {
-          setTimeout(() => {
-            msg.delete()
-              .catch(console.error);
-          }, 5000);
-        })
-        .catch(console.error);
-    }
+  if (!content.startsWith(prefix)) return;
+
+  const args = content.slice(prefix.length).trim().split(/ +/);
+  const commandName = args.shift().toLowerCase();
+
+  const command = message.client.commands.get(commandName) ||
+    message.client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
+
+  if (!command) return;
+
+  // Check if user has required permissions
+  const memberPermissions = message.member.permissions;
+  const requiredPermissions = new Discord.Permissions(command.permissions || 0);
+  const missingPermissions = requiredPermissions.missing(memberPermissions);
+
+  if (missingPermissions.length > 0) {
+    return message.reply(`You are missing the following permissions: ${missingPermissions.join(', ')}`);
+  }
+
+  try {
+    await command.execute(message, args);
+  } catch (error) {
+    console.error(error);
+    message.reply('An error occurred while executing this command');
   }
 };
