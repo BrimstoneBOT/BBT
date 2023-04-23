@@ -1,5 +1,5 @@
-module.exports = async (message) => {
-  if (!message.author || message.author.bot) return;
+module.exports = async (client, message) => {
+  if (!message || message.author.bot) return;
 
   const { content } = message;
 
