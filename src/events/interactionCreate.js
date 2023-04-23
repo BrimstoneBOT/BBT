@@ -1,21 +1,25 @@
-const { MessageEmbed } = require('discord.js');
+const { Collection } = require('discord.js');
 
-module.exports = async (interaction, client) => {
-  if (!interaction.isCommand()) return;
+// Keep track of processed interactions to prevent duplicates
+const processedInteractions = new Set();
+
+module.exports = async (client, interaction) => {
+  console.log('interactionCreate event triggered');
+
+  // Ignore interactions that have already been processed
+  if (processedInteractions.has(interaction.id)) return;
+  processedInteractions.add(interaction.id);
+
+  if (!interaction.isCommand) return;
 
   const command = client.commands.get(interaction.commandName);
 
   if (!command) return;
 
   try {
-    await command.execute(interaction);
+    await command.execute(interaction, client);
   } catch (error) {
     console.error(error);
-    const errorMessage = new MessageEmbed()
-      .setColor('#FF0000')
-      .setTitle('An error occurred while executing this command')
-      .setDescription('Please contact the bot owner if the issue persists.');
-
-    await interaction.reply({ embeds: [errorMessage], ephemeral: true });
+    await interaction.reply({ content: 'An error occurred while executing this command', ephemeral: true });
   }
 };

@@ -2,7 +2,7 @@ require('dotenv').config({ path: './.env' });
 const fs = require('fs');
 const path = require('path');
 const commandsPath = path.join(__dirname, 'commands');
-const { Client, Intents, Permissions } = require('discord.js');
+const { Client, Intents, Permissions, Collection } = require('discord.js');
 const { MongoClient } = require('mongodb');
 const handleInteractionCreate = require('./events/interactionCreate');
 const uri = process.env.MONGO_URI;
@@ -16,14 +16,9 @@ const client = new Client({
   partials: ['MESSAGE', 'CHANNEL'],
 });
 
-client.commands = new Map();
-client.guildSettings = new Map();
-client.snipes = new Map();
-
-client.on('interactionCreate', async (interaction) => {
-  await handleInteractionCreate(interaction, client);
-});
-
+client.commands = new Collection();
+client.guildSettings = new Collection();
+client.snipes = new Collection();
 
 // Load commands
 const commandFolders = fs.readdirSync(commandsPath, { withFileTypes: true })
@@ -39,7 +34,7 @@ for (const folder of commandFolders) {
 }
 
 // Load events
-const eventFiles = fs.readdirSync('./src/events').filter(file => file.endsWith('.js'));
+const eventFiles = fs.readdirSync('./src/events').filter(file => file.startsWith('on'));
 for (const file of eventFiles) {
   console.log(`Loading event file: ${file}`);
   const event = require(`./events/${file}`);
@@ -52,6 +47,15 @@ for (const file of eventFiles) {
   client.on(file.split('.')[0], (...args) => event(...args, client));
 }
 
+client.on('ready', async () => {
+  console.log(`Logged in as ${client.user.tag}`);
+  console.log(`Bot has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds.`);
+});
+
+client.on('interactionCreate', async (interaction) => {
+  console.log('interactionCreate event triggered');
+  await handleInteractionCreate(client, interaction);
+});
 
 client.on('error', (error) => {
   console.error(error);

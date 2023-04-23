@@ -1,4 +1,4 @@
-const GuildSettings = require('../models/GuildSettings');
+const GuildSettings = require('../models/guildSettings');
 
 module.exports = async (client, message) => {
   if (!message || message.author?.bot) return;
