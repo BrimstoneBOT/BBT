@@ -27,7 +27,10 @@ module.exports = async (client, message) => {
           .catch(error => console.error(error));
       }
       // Send a public message in the channel to notify other users
-      await message.reply(`${message.author.username}, your message contains inappropriate language/links and has been removed.`).catch(error => console.error(error));
+      await message.channel.send({
+        content: `${message.author}, your message contains inappropriate language/links and has been removed.`,
+        fetchReply: true
+      }).catch(error => console.error(error));
     }
   } catch (error) {
     console.error(error);
