@@ -1,14 +1,14 @@
 const { MessageEmbed } = require('discord.js');
 const { MongoClient } = require('mongodb');
 const uri = process.env.MONGO_URI;
-const Filter = require('bad-words');
-const filter = new Filter();
+
+const profanityWords = require('../data/profanityWords.json');
 
 module.exports = async (client, message) => {
   if (!message || !message.author || message.author.bot) return;
 
   // Check if the message contains profanity
-  const hasProfanity = filter.isProfane(message.content);
+  const hasProfanity = profanityWords.some(word => message.content.toLowerCase().includes(word));
 
   // Store the deleted message in the client.snipes Map
   const snipes = client.snipes.get(message.channelId) || [];
@@ -69,7 +69,11 @@ module.exports = async (client, message) => {
     }
 
     if (message.content) {
-      embed.setDescription(message.content);
+      if (hasProfanity) {
+        embed.setDescription(`[Profanity] ${message.content}`);
+      } else {
+        embed.setDescription(message.content);
+      }
     }
 
     if (message.attachments.first()) {
@@ -88,9 +92,20 @@ module.exports = async (client, message) => {
     }
 
     await auditChannel.send({ embeds: [embed] });
+} catch (error) {
+  console.error('Error in messageDelete event handler:', error);
+} finally {
+  await mongoClient.close();
+}
+
+// Send a message to the user whose message was deleted if it contained profanity
+if (hasProfanity) {
+  try {
+    const warningMessage = `Your message in <#${message.channel.id}> contained inappropriate language and has been deleted.`;
+    const user = await client.users.fetch(message.author.id);
+    user.send(warningMessage);
   } catch (error) {
-    console.error('Error in messageDelete event handler:', error);
-  } finally {
-    await mongoClient.close();
+    console.error('Error sending warning message to user:', error);
   }
+}
 };

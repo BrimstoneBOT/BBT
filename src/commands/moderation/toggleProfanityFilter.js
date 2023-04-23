@@ -1,24 +1,22 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const Guild = require('../../models/guild'); // Update the path
-
 module.exports = {
-	data: new SlashCommandBuilder()
-		.setName('toggle-profanity-filter')
-		.setDescription('Toggles the profanity filter on or off.'),
-	async execute(interaction) {
-		const guildId = interaction.guildId;
+  name: 'toggleprofanityfilter',
+  description: 'Toggle the profanity filter on or off.',
+  async execute(interaction) {
+    const guildSettings = await interaction.client.guildSettings.get(interaction.guild.id) || {};
 
-		// Fetch the guild settings from the database
-		const guildSettings = await Guild.findOne({ guildId });
-		if (!guildSettings) {
-			await interaction.reply('Error fetching guild settings.');
-			return;
-		}
+    console.log('Before:', guildSettings);
 
-		// Update the profanity filter setting
-		guildSettings.profanityFilter = !guildSettings.profanityFilter;
-		await guildSettings.save();
+    if (guildSettings.profanityFilterEnabled) {
+      guildSettings.profanityFilterEnabled = false;
+      await interaction.reply('The profanity filter has been turned off.');
+    } else {
+      guildSettings.profanityFilterEnabled = true;
+      await interaction.reply('The profanity filter has been turned on.');
+    }
 
-		await interaction.reply(`Profanity filter is now ${guildSettings.profanityFilter ? 'enabled' : 'disabled'}.`);
-	},
+    await guildSettings.save();
+    interaction.client.guildSettings.set(interaction.guild.id, guildSettings);
+
+    console.log('After:', guildSettings);
+  },
 };

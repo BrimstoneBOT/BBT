@@ -21,7 +21,14 @@ const readCommands = (dir) => {
     } else if (file.endsWith('.js')) {
       const command = require(path.join(__dirname, dir, file));
       console.log(`Loading command: ${command.name}`); // Add this line to log the command names
-      commands.push(command);
+      commands.push({
+        name: command.name,
+        description: command.description,
+        options: command.options,
+        defaultPermission: command.defaultPermission,
+        type: 1,
+        execute: command,
+      });
     }
   }
 };

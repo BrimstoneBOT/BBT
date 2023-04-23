@@ -1,9 +1,11 @@
-const { Schema, model } = require('mongoose');
+const mongoose = require('mongoose');
 
-const GuildSettingsSchema = new Schema({
-  guildId: { type: String, required: true },
-  prefix: { type: String, default: '/' },
-  profanityFilter: { type: Boolean, default: true },
+const guildSettingsSchema = new mongoose.Schema({
+  guildId: { type: String, required: true, unique: true },
+  prefix: { type: String, default: '!' },
+  welcomeMessageEnabled: { type: Boolean, default: false },
+  welcomeMessageChannel: { type: String, default: null },
+  profanityFilterEnabled: { type: Boolean, default: false },
 });
 
-module.exports = model('GuildSettings', GuildSettingsSchema);
+module.exports = mongoose.model('GuildSettings', guildSettingsSchema);
