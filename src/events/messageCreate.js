@@ -1,14 +1,17 @@
+const GuildSettings = require('../models/GuildSettings');
+
 module.exports = async (client, message) => {
-  if (!message || message.author.bot) return;
+  if (!message || message.author?.bot) return;
 
-  const { content } = message;
+  const content = message?.content;
 
-  if (content.includes('discord.gg/')) {
+  if (content?.includes('discord.gg/')) {
     await message.delete();
     return message.channel.send('Invites are not allowed in this server!');
   }
 
-  const guildSettings = message.client.guildSettings.get(message.guild.id);
+  if (!message.guild) return;
+  const guildSettings = await GuildSettings.findOne({ guildId: message.guild.id });
   const prefix = guildSettings.prefix;
 
   if (!content.startsWith(prefix)) return;
