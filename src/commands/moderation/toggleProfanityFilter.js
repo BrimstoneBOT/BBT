@@ -1,12 +1,12 @@
-const { CommandInteraction } = require('discord.js');
+const { Message } = require('discord.js');
 const GuildSettings = require('../../models/guildSettings');
 
 module.exports = {
   data: {
     name: 'toggleprofanityfilter',
     description: 'Toggle the profanity filter on or off',
-  },  
-  async execute(interaction = new CommandInteraction()) {
+  },
+  async execute(interaction = new Message()) {
     const { channel } = interaction;
 
     if (!channel) {
@@ -41,11 +41,7 @@ module.exports = {
       });
     }
 
-    const guildSettings = await GuildSettings.findOneAndUpdate(
-      { guildId: guild.id },
-      { $set: { profanityFilterEnabled: !guildSettings.profanityFilterEnabled } },
-      { new: true }
-    );
+    const guildSettings = await GuildSettings.findOne({ guildId: guild.id });
 
     if (!guildSettings) {
       return await interaction.reply({
@@ -54,7 +50,11 @@ module.exports = {
       });
     }
 
+    guildSettings.profanityFilterEnabled = !guildSettings.profanityFilterEnabled;
+
     try {
+      await guildSettings.save();
+
       return await interaction.reply({
         content: `The profanity filter has been ${
           guildSettings.profanityFilterEnabled ? 'enabled' : 'disabled'
