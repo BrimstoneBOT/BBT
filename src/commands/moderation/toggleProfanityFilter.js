@@ -1,22 +1,39 @@
+const { MongoClient } = require('mongodb');
+const uri = process.env.MONGO_URI;
+
 module.exports = {
-  name: 'toggleprofanityfilter',
-  description: 'Toggle the profanity filter on or off.',
+  data: {
+    name: 'toggleprofanityfilter',
+    description: 'Toggle the profanity filter on or off.',
+  },
   async execute(interaction) {
-    const guildSettings = await interaction.client.guildSettings.get(interaction.guild.id) || {};
+    const mongoClient = new MongoClient(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
-    console.log('Before:', guildSettings);
+    try {
+      await mongoClient.connect();
+      const database = mongoClient.db('discordbot');
+      const settings = database.collection('settings');
 
-    if (guildSettings.profanityFilterEnabled) {
-      guildSettings.profanityFilterEnabled = false;
-      await interaction.reply('The profanity filter has been turned off.');
-    } else {
-      guildSettings.profanityFilterEnabled = true;
-      await interaction.reply('The profanity filter has been turned on.');
+      const guildSettings = await settings.findOne({ guildId: interaction.guild.id });
+
+      const filterStatus = guildSettings?.profanityFilter ?? true; // Default to true if not set
+      const newStatus = !filterStatus;
+
+      if (guildSettings) {
+        await settings.updateOne({ guildId: interaction.guild.id }, { $set: { profanityFilter: newStatus } });
+      } else {
+        await settings.insertOne({ guildId: interaction.guild.id, profanityFilter: newStatus });
+      }
+
+      await interaction.reply(`Profanity filter has been turned ${newStatus ? 'on' : 'off'}.`);
+    } catch (error) {
+      console.error('Error toggling profanity filter:', error);
+      await interaction.reply({ content: 'An error occurred while toggling the profanity filter.', ephemeral: true });
+    } finally {
+      await mongoClient.close();
     }
-
-    await guildSettings.save();
-    interaction.client.guildSettings.set(interaction.guild.id, guildSettings);
-
-    console.log('After:', guildSettings);
   },
 };

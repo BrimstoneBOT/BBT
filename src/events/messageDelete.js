@@ -7,19 +7,6 @@ const profanityWords = require('../data/profanityWords.json');
 module.exports = async (client, message) => {
   if (!message || !message.author || message.author.bot) return;
 
-  // Check if the message contains profanity
-  const hasProfanity = profanityWords.some(word => message.content.toLowerCase().includes(word));
-
-  // Store the deleted message in the client.snipes Map
-  const snipes = client.snipes.get(message.channelId) || [];
-  snipes.unshift({
-    content: message.content,
-    author: message.author,
-    image: message.attachments.first()?.url || null,
-    deletedByProfanityFilter: hasProfanity,
-  });
-  client.snipes.set(message.channelId, snipes.slice(0, 10)); // Limit to the 10 most recent snipes
-
   const mongoClient = new MongoClient(uri, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -28,9 +15,27 @@ module.exports = async (client, message) => {
   try {
     await mongoClient.connect();
     const database = mongoClient.db('discordbot');
+    const settings = database.collection('settings');
     const auditChannels = database.collection('auditChannels');
 
+    const guildSettings = await settings.findOne({ guildId: message.guild.id });
     const auditChannelEntry = await auditChannels.findOne({ guildId: message.guild.id });
+
+    // Default to true if not set
+    const profanityFilter = guildSettings?.profanityFilter ?? true;
+
+    // Check if the message contains profanity
+    const hasProfanity = profanityFilter && profanityWords.some(word => message.content.toLowerCase().includes(word));
+
+    // Store the deleted message in the client.snipes Map
+    const snipes = client.snipes.get(message.channelId) || [];
+    snipes.unshift({
+      content: message.content,
+      author: message.author,
+      image: message.attachments.first()?.url || null,
+      deletedByProfanityFilter: hasProfanity,
+    });
+    client.snipes.set(message.channelId, snipes.slice(0, 10)); // Limit to the 10 most recent snipes
 
     if (!auditChannelEntry) return;
 
@@ -93,22 +98,8 @@ module.exports = async (client, message) => {
 
     await auditChannel.send({ embeds: [embed] });
   } catch (error) {
-    console.error('Error sending message to audit channel:', error);
+    console.error('Error processing message delete event:', error);
   } finally {
     await mongoClient.close();
-  }
-
-  // Send a message to the user whose message was deleted if it contained profanity
-  if (hasProfanity) {
-    try {
-      const warningMessage = `Your message in <#${message.channel.id}> contained inappropriate language and has been deleted.`;
-      const user = await client.users.fetch(message.author.id);
-      user.send(warningMessage);
-    } catch (error) {
-      console.error('Error sending warning message to user:', error);
-      if (error.code === 50007) {
-        console.error('Cannot send messages to this user. Ignoring.');
-      }
-    }
   }
 };
