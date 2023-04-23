@@ -37,69 +37,74 @@ module.exports = async (client, message) => {
     });
     client.snipes.set(message.channelId, snipes.slice(0, 10)); // Limit to the 10 most recent snipes
 
-    if (!auditChannelEntry) return;
+    try {
+      const auditChannel = message.guild.channels.cache.get(auditChannelEntry.auditChannelId);
+      const author = message.author;
 
-    const auditChannel = message.guild.channels.cache.get(auditChannelEntry.auditChannelId);
-    const author = message.author;
+      // Fetch audit logs to find the user who deleted the message
+      const fetchedLogs = await message.guild.fetchAuditLogs({
+        limit: 10,
+        type: 'MESSAGE_DELETE',
+      });
 
-    // Fetch audit logs to find the user who deleted the message
-    const fetchedLogs = await message.guild.fetchAuditLogs({
-      limit: 10,
-      type: 'MESSAGE_DELETE',
-    });
+      const deletionLog = fetchedLogs.entries.find((entry) => {
+        const timeDifference = (Date.now() - entry.createdTimestamp) / 1000; // Time difference in seconds
+        const isMessageDeletion = entry.extra?.channel?.id === message.channel.id && entry.target.id === message.author.id && entry.extra?.messageId === message.id;
+        return isMessageDeletion && timeDifference < 5;
+      });
 
-    const deletionLog = fetchedLogs.entries.find((entry) => {
-      const timeDifference = (Date.now() - entry.createdTimestamp) / 1000; // Time difference in seconds
-      const isMessageDeletion = entry.extra?.channel?.id === message.channel.id && entry.target.id === message.author.id && entry.extra?.messageId === message.id;
-      return isMessageDeletion && timeDifference < 5;
-    });
-
-    let executor;
-    if (deletionLog) {
-      const { target, executor: logExecutor } = deletionLog;
-      if (target.id === message.author.id) {
-        executor = logExecutor;
-      }
-    }
-
-    const embed = new MessageEmbed()
-      .setColor('#FF0000')
-      .setAuthor({ name: author.tag, iconURL: author.avatarURL() })
-      .setFooter({ text: `User ID: ${author.id}` })
-      .setTimestamp()
-      .addFields({ name: 'Channel', value: `<#${message.channel.id}>` });
-
-    if (executor) {
-      embed.addFields({ name: 'Deleted by', value: `${executor.tag} (${executor.id})` });
-    }
-
-    if (message.content) {
-      if (hasProfanity) {
-        embed.setDescription(`[Profanity] ${message.content}`);
-      } else {
-        embed.setDescription(message.content);
-      }
-    }
-
-    if (message.attachments.first()) {
-      const attachment = message.attachments.first();
-      const isVideo = attachment.contentType.startsWith('video/');
-
-      if (!isVideo) {
-        embed.setImage(attachment.url);
+      let executor;
+      if (deletionLog) {
+        const { target, executor: logExecutor } = deletionLog;
+        if (target.id === message.author.id) {
+          executor = logExecutor;
+        }
       }
 
-      if (isVideo) {
-        const videoMessage = `${author.tag} (${author.id}) posted a video that got deleted in <#${message.channel.id}>:\n${attachment.url}`;
-        await auditChannel.send({ content: videoMessage });
-        return;
-      }
-    }
+      const embed = new MessageEmbed()
+        .setColor('#FF0000')
+        .setAuthor({ name: author.tag, iconURL: author.avatarURL() })
+        .setFooter({ text: `User ID: ${author.id}` })
+        .setTimestamp()
+        .addFields({ name: 'Channel', value: `<#${message.channel.id}>` });
 
-    await auditChannel.send({ embeds: [embed] });
+      if (executor) {
+        embed.addFields({ name: 'Deleted by', value: `${executor.tag} (${executor.id})` });
+      }
+
+      if (message.content) {
+        if (hasProfanity && profanityFilter) {
+          // Only modify the description if the profanity filter is on
+          embed.setDescription(`[Profanity] ${message.content}`);
+        } else {
+          embed.setDescription(message.content);
+        }
+      }
+
+      if (message.attachments.first()) {
+        const attachment = message.attachments.first();
+        const isVideo = attachment.contentType.startsWith('video/');
+      
+        if (!isVideo) {
+          embed.setImage(attachment.url);
+        }
+      
+        if (isVideo) {
+          const videoMessage = `${author.tag} (${author.id}) posted a video that got deleted in <#${message.channel.id}>:\n${attachment.url}`;
+          await auditChannel.send({ content: videoMessage });
+          return;
+        }
+      }
+      
+      await auditChannel.send({ embeds: [embed] });
+    } catch (error) {
+      console.error('Error processing message delete event:', error);
+    } finally {
+      await mongoClient.close();
+    }
   } catch (error) {
-    console.error('Error processing message delete event:', error);
-  } finally {
-    await mongoClient.close();
+    console.error('Error connecting to MongoDB:', error);
   }
 };
+
+      

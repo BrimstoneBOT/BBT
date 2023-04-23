@@ -5,6 +5,7 @@ module.exports = {
   data: {
     name: 'toggleprofanityfilter',
     description: 'Toggle the profanity filter on or off.',
+    type: 1
   },
   async execute(interaction) {
     const mongoClient = new MongoClient(uri, {
@@ -37,3 +38,7 @@ module.exports = {
     }
   },
 };
+
+if (!module.exports.data.name) {
+  console.error('Command name is not defined!');
+}

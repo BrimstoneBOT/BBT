@@ -11,6 +11,7 @@ const token = process.env.TOKEN;
 const commands = [];
 
 const readCommands = (dir) => {
+  console.log(commands);
   const files = fs.readdirSync(path.join(__dirname, dir));
 
   for (const file of files) {
