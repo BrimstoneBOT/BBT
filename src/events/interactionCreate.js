@@ -13,6 +13,7 @@ module.exports = async (client, interaction) => {
     .find((cmd) => cmd.name === `${interaction.commandName}.js` && cmd.folder);
 
   if (!command) {
+    console.log(`Command ${interaction.commandName} not found.`);
     await interaction.reply({ content: 'Unknown command', ephemeral: true });
     return;
   }

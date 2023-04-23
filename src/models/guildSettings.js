@@ -5,7 +5,7 @@ const guildSettingsSchema = new mongoose.Schema({
   prefix: { type: String, default: '!' },
   welcomeMessageEnabled: { type: Boolean, default: false },
   welcomeMessageChannel: { type: String, default: null },
-  profanityFilterEnabled: { type: Boolean, default: false },
+  profanityFilterEnabled: { type: Boolean, default: true }, // set default to true
 });
 
 module.exports = mongoose.model('GuildSettings', guildSettingsSchema);
