@@ -68,20 +68,4 @@ mongoose.connection.once('open', () => {
   console.log('Connected to MongoDB!');
 });
 
-client.on('messageCreate', async (message) => {
-  if (!message.guild) return; // Message wasn't sent in a guild
-  if (message.author.bot) return;
-
-  const guildId = message.guild.id;
-  const guildSettings = await GuildSettings.findOne({ guildId }) || new GuildSettings({ guildId });
-  console.log(`Guild settings: ${JSON.stringify(guildSettings)}`);
-
-  if (guildSettings.profanityFilterEnabled && client.profanityFilter.hasProfanity(message.content)) {
-    console.log(`Deleting message: ${message.content}`);
-    message.delete();
-    message.reply('Your message contains profanity and has been removed.');
-    return;
-  }
-});
-
 client.login(process.env.TOKEN);

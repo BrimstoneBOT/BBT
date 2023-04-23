@@ -92,20 +92,23 @@ module.exports = async (client, message) => {
     }
 
     await auditChannel.send({ embeds: [embed] });
-} catch (error) {
-  console.error('Error in messageDelete event handler:', error);
-} finally {
-  await mongoClient.close();
-}
-
-// Send a message to the user whose message was deleted if it contained profanity
-if (hasProfanity) {
-  try {
-    const warningMessage = `Your message in <#${message.channel.id}> contained inappropriate language and has been deleted.`;
-    const user = await client.users.fetch(message.author.id);
-    user.send(warningMessage);
   } catch (error) {
-    console.error('Error sending warning message to user:', error);
+    console.error('Error sending message to audit channel:', error);
+  } finally {
+    await mongoClient.close();
   }
-}
+
+  // Send a message to the user whose message was deleted if it contained profanity
+  if (hasProfanity) {
+    try {
+      const warningMessage = `Your message in <#${message.channel.id}> contained inappropriate language and has been deleted.`;
+      const user = await client.users.fetch(message.author.id);
+      user.send(warningMessage);
+    } catch (error) {
+      console.error('Error sending warning message to user:', error);
+      if (error.code === 50007) {
+        console.error('Cannot send messages to this user. Ignoring.');
+      }
+    }
+  }
 };
