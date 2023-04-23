@@ -1,16 +1,28 @@
 const GuildSettings = require('../models/guildSettings');
+const badWords = require('bad-words');
+
+// Create a new instance of the bad-words filter
+const filter = new badWords();
 
 module.exports = async (client, message) => {
   if (!message || message.author?.bot) return;
 
   const content = message?.content;
 
+  // Check for invites and delete the message
   if (content?.includes('discord.gg/')) {
     await message.delete();
     return message.channel.send('Invites are not allowed in this server!');
   }
 
+  // Check for profanity and delete the message
+  if (filter.isProfane(content)) {
+    await message.delete();
+    return message.reply('Please refrain from using profanity in this server!');
+  }
+
   if (!message.guild) return;
+
   const guildSettings = await GuildSettings.findOne({ guildId: message.guild.id });
   const prefix = guildSettings.prefix;
 
@@ -26,7 +38,9 @@ module.exports = async (client, message) => {
 
   // Check if user has required permissions
   const memberPermissions = message.member.permissions;
-  const requiredPermissions = new Discord.Permissions(command.permissions || 0);
+  const { Permissions } = require('discord.js');
+const requiredPermissions = new Permissions(command.permissions || 0);
+
   const missingPermissions = requiredPermissions.missing(memberPermissions);
 
   if (missingPermissions.length > 0) {
