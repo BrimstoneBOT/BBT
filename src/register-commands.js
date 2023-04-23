@@ -39,16 +39,14 @@ const rest = new REST({ version: '9' }).setToken(token);
 (async () => {
   try {
     console.log('Started deleting application (/) commands.');
-
+    //await rest.delete(Routes.applicationGuildCommands(clientId, guildId));
     console.log('Finished deleting application (/) commands.');
 
     console.log('Started refreshing application (/) commands.');
-
     await rest.put(
       Routes.applicationGuildCommands(clientId, guildId),
       { body: commands },
     );
-
     console.log('Successfully reloaded application (/) commands.');
   } catch (error) {
     console.error(error);

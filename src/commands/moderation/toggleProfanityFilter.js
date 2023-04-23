@@ -41,7 +41,11 @@ module.exports = {
       });
     }
 
-    const guildSettings = await GuildSettings.findOne({ guildId: guild.id });
+    const guildSettings = await GuildSettings.findOneAndUpdate(
+      { guildId: guild.id },
+      { $set: { profanityFilterEnabled: { $not: "$profanityFilterEnabled" } } },
+      { new: true }
+    );
 
     if (!guildSettings) {
       return await interaction.reply({
@@ -50,24 +54,11 @@ module.exports = {
       });
     }
 
-    guildSettings.profanityFilterEnabled = !guildSettings.profanityFilterEnabled;
-
-    try {
-      await guildSettings.save();
-
-      return await interaction.reply({
-        content: `The profanity filter has been ${
-          guildSettings.profanityFilterEnabled ? 'enabled' : 'disabled'
-        }.`,
-        ephemeral: true,
-      });
-    } catch (error) {
-      console.error(error);
-
-      return await interaction.reply({
-        content: 'An error occurred while updating the profanity filter.',
-        ephemeral: true,
-      });
-    }
+    return await interaction.reply({
+      content: `The profanity filter has been ${
+        guildSettings.profanityFilterEnabled ? 'enabled' : 'disabled'
+      }.`,
+      ephemeral: true,
+    });
   },
 };
