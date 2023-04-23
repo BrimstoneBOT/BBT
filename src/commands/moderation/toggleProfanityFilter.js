@@ -1,44 +1,27 @@
-const { MongoClient } = require('mongodb');
-const uri = process.env.MONGO_URI;
-
-module.exports = {
-  data: {
-    name: 'toggleprofanityfilter',
-    description: 'Toggle the profanity filter on or off.',
-    type: 1
-  },
-  async execute(interaction) {
+async execute(interaction) {
+  try {
     const mongoClient = new MongoClient(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
 
-    try {
-      await mongoClient.connect();
-      const database = mongoClient.db('discordbot');
-      const settings = database.collection('settings');
+    await mongoClient.connect();
+    const database = mongoClient.db('discordbot');
+    const settings = database.collection('settings');
 
-      const guildSettings = await settings.findOne({ guildId: interaction.guild.id });
+    const result = await settings.findOneAndUpdate(
+      { _id: 'profanityFilterEnabled' },
+      { $set: { value: !profanityFilterEnabled } },
+      { returnOriginal: false }
+    );
 
-      const filterStatus = guildSettings?.profanityFilter ?? true; // Default to true if not set
-      const newStatus = !filterStatus;
+    const newValue = result.value.value;
+    console.log(`Updated profanity filter enabled setting to: ${newValue}`);
+    await interaction.reply(`Profanity filter has been ${newValue ? 'enabled' : 'disabled'}.`);
 
-      if (guildSettings) {
-        await settings.updateOne({ guildId: interaction.guild.id }, { $set: { profanityFilter: newStatus } });
-      } else {
-        await settings.insertOne({ guildId: interaction.guild.id, profanityFilter: newStatus });
-      }
-
-      await interaction.reply(`Profanity filter has been turned ${newStatus ? 'on' : 'off'}.`);
-    } catch (error) {
-      console.error('Error toggling profanity filter:', error);
-      await interaction.reply({ content: 'An error occurred while toggling the profanity filter.', ephemeral: true });
-    } finally {
-      await mongoClient.close();
-    }
-  },
-};
-
-if (!module.exports.data.name) {
-  console.error('Command name is not defined!');
+    await mongoClient.close();
+  } catch (error) {
+    console.error(error);
+    await interaction.reply('An error occurred while toggling the profanity filter.');
+  }
 }
