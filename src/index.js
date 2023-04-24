@@ -43,19 +43,22 @@ client.on('ready', async () => {
   }
 });
 
-// Set up the interactionCreate event listener
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return;
+// Set up the message event listener
+client.on('messageCreate', async (message) => {
+  if (!message.content.startsWith(process.env.PREFIX) || message.author.bot) return;
 
-  const command = client.commands.get(interaction.commandName);
+  const args = message.content.slice(process.env.PREFIX.length).trim().split(/ +/);
+  const commandName = args.shift().toLowerCase();
+
+  const command = client.commands.get(commandName) || client.commands.find((cmd) => cmd.aliases && cmd.aliases.includes(commandName));
 
   if (!command) return;
 
   try {
-    await command.execute(interaction);
+    await command.execute(message, args);
   } catch (error) {
     console.error(error);
-    await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+    await message.reply({ content: 'There was an error while executing this command!', ephemeral: true });
   }
 });
 

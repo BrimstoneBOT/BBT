@@ -6,7 +6,7 @@ const eightball = require('./commands/fun/eightball');
 const kiss = require('./commands/fun/kiss');
 const snipe = require('./commands/fun/snipe');
 const audit = require('./commands/moderation/audit');
-const toggleFilter = require('./commands/moderation/toggleFilter');
+const toggleFilter = require('./commands/togglefilter');
 
 module.exports = [
   about,
