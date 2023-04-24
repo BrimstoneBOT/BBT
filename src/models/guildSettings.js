@@ -8,4 +8,6 @@ const guildSettingsSchema = new mongoose.Schema({
   profanityFilterEnabled: { type: Boolean, default: true }, // set default to true
 });
 
-module.exports = mongoose.model('GuildSettings', guildSettingsSchema);
+const GuildSettings = mongoose.model('GuildSettings', guildSettingsSchema);
+
+module.exports = GuildSettings;

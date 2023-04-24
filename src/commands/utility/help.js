@@ -37,6 +37,10 @@ module.exports = {
         name: '/audit',
         value: 'Set up the audit system by creating an audit channel and assigning a role to the bot and user.',
       },
+      {
+        name: '/togglefilter',
+        value: 'Toggle the profanity filter on/off for the server. (Admin only)',
+      },      
     ];
 
     const helpEmbed = new MessageEmbed()

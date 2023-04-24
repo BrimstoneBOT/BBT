@@ -2,11 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
+const mongoose = require('mongoose');
 require('dotenv').config();
+const GuildSettings = require('./models/guildSettings');
 
 const clientId = process.env.CLIENT_ID;
 const guildId = process.env.GUILD_ID;
 const token = process.env.TOKEN;
+const mongoURI = process.env.MONGO_URI;
 
 const commands = [];
 
@@ -34,13 +37,10 @@ const readCommands = (dir) => {
 
 readCommands('commands');
 
-const rest = new REST({ version: '9' }).setToken(token);
-
 (async () => {
   try {
-    console.log('Started deleting application (/) commands.');
-    //await rest.delete(Routes.applicationGuildCommands(clientId, guildId));
-    console.log('Finished deleting application (/) commands.');
+    await mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true });
+    const rest = new REST({ version: '9' }).setToken(token);
 
     console.log('Started refreshing application (/) commands.');
     await rest.put(
@@ -48,7 +48,18 @@ const rest = new REST({ version: '9' }).setToken(token);
       { body: commands },
     );
     console.log('Successfully reloaded application (/) commands.');
+
+    // Check if GuildSettings document already exists in the database for the guild
+    const existingSettings = await GuildSettings.findOne({ guildId });
+    if (!existingSettings) {
+      console.log('No existing settings found, creating new settings document.');
+      await GuildSettings.create({ guildId });
+    } else {
+      console.log('Existing settings found, skipping creation of new settings document.');
+    }
   } catch (error) {
     console.error(error);
+  } finally {
+    await mongoose.connection.close();
   }
 })();

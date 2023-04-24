@@ -6,7 +6,7 @@ const eightball = require('./commands/fun/eightball');
 const kiss = require('./commands/fun/kiss');
 const snipe = require('./commands/fun/snipe');
 const audit = require('./commands/moderation/audit');
-const toggleprofanityfilter = require('./commands/moderation/toggleProfanityFilter').execute;
+const toggleFilter = require('./commands/moderation/toggleFilter');
 
 module.exports = [
   about,
@@ -17,6 +17,5 @@ module.exports = [
   kiss,
   snipe,
   audit,
-  toggleprofanityfilter,
+  toggleFilter,
 ];
-
