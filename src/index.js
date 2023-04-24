@@ -24,13 +24,15 @@ client.profanityFilter = new ProfanityFilter(profanityWords);
 client.commands = new Collection();
 
 // Loop through the command files and set them up
-const commandFiles = fs.readdirSync(commandsPath).filter((file) => file.endsWith('.js'));
+const commandFolders = fs.readdirSync(commandsPath);
 
-for (const file of commandFiles) {
-  const command = require(path.join(commandsPath, file));
-  client.commands.set(command.name, command);
+for (const folder of commandFolders) {
+  const commandFiles = fs.readdirSync(path.join(commandsPath, folder)).filter((file) => file.endsWith('.js'));
+  for (const file of commandFiles) {
+    const command = require(path.join(commandsPath, folder, file));
+    client.commands.set(command.name, command);
+  }
 }
-
 client.on('ready', async () => {
   console.log(`✔️  ${client.user.tag} is online!`);
   console.log(`Bot has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds.`);
