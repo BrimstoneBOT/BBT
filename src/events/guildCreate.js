@@ -6,7 +6,10 @@ module.exports = async (client, guild) => {
     const guildSettings = new GuildSettings({ guildId: guild.id });
     await guildSettings.save();
 
-    console.log(`Created new settings document for guild ${guild.id}.`);
+    // Register slash commands with new server
+    const commands = await guild.commands.set(client.commands);
+    console.log(`Registered ${commands.size} slash commands for ${guild.name}.`);
+
   } catch (error) {
     console.error(error);
   }

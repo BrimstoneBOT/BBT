@@ -66,7 +66,7 @@ client.on('messageCreate', async (message) => {
 
 mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.connection.once('open', () => {
-  console.log('Connected to MongoDB!');
+  console.log('✔️ Connected to MongoDB!');
 });
 
 mongoose.connection.on('error', (err) => {
