@@ -14,8 +14,8 @@ module.exports = async (client, message) => {
     const hasProfanity = guildSettings.profanityFilterEnabled && profanityWords.some(word => message.content.toLowerCase().includes(word));
     console.log(`Has profanity: ${hasProfanity}`);
 
-    // Check if message contains links
-    const hasLinks = /(http[s]?:\/\/[^\s]+)/gi.test(message.content);
+    // Check if message contains links only if the profanity filter is enabled
+    const hasLinks = guildSettings.profanityFilterEnabled && /(http[s]?:\/\/[^\s]+)/gi.test(message.content);
     console.log(`Has links: ${hasLinks}`);
 
     if (hasProfanity || hasLinks) {
@@ -36,4 +36,3 @@ module.exports = async (client, message) => {
     console.error(error);
   }
 };
- 
