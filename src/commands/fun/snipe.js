@@ -23,7 +23,7 @@ module.exports = {
     const embed = new MessageEmbed()
       .setTitle("Sniped Message")
       .setDescription(snipe.content)
-      .addFields({ name: "Original Poster", value: `<@${snipe.authorId}>` });
+      .addFields({ name: "Original Poster", value: `<@${snipe.author.id}>` });
 
     if (snipe.deletedAt) {
       embed.addFields({
@@ -37,7 +37,7 @@ module.exports = {
         text: `Sniped by ${interaction.user.tag}`,
         iconURL: interaction.user.displayAvatarURL(),
       })
-      .setColor("RANDOM");
+      .setColor("RED");
 
     interaction.reply({ embeds: [embed] });
   },
