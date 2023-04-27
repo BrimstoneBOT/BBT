@@ -1,31 +1,44 @@
-const { MessageEmbed } = require('discord.js');
-const Snipe = require('../../models/snipe'); // Import the Snipe model
+const { MessageEmbed } = require("discord.js");
+const Snipe = require("../../models/snipeModel");
+const ProfanityFilter = require("../../helpers/profanityFilter");
+const profanityFilter = new ProfanityFilter();
 
 module.exports = {
-  name: 'snipe',
-  description: 'Snipe the last deleted message in the current channel.',
+  name: "snipe",
+  description: "Snipes the last deleted message.",
+  options: [],
   async execute(interaction) {
-    const snipes = await Snipe.find({ channelId: interaction.channelId }).sort({ _id: -1 }).limit(10);
+    const snipe = await Snipe.findOne({
+      channelId: interaction.channel.id,
+    }).sort({ deletedAt: -1 });
 
-    if (!snipes || snipes.length === 0) {
-      return await interaction.reply('There is nothing to snipe!');
+    if (!snipe) {
+      return interaction.reply("There's nothing to snipe.");
     }
 
-    const snipe = snipes[0];
-    if (snipe.deletedByProfanityFilter) {
-      return await interaction.reply({ content: 'Nice try.' });
-    } else {
-      const embed = new MessageEmbed()
-        .setAuthor({ name: snipe.author.tag, iconURL: snipe.author.avatarURL() })
-        .setDescription(snipe.content)
-        .setFooter({ text: `Sniped by ${interaction.user.tag}`, iconURL: interaction.user.avatarURL() })
-        .setTimestamp();
-
-      if (snipe.image) {
-        embed.setImage(snipe.image);
-      }
-
-      return await interaction.reply({ embeds: [embed] });
+    if (profanityFilter.hasProfanity(snipe.content)) {
+      return interaction.reply("Nice try.");
     }
+
+    const embed = new MessageEmbed()
+      .setTitle("Sniped Message")
+      .setDescription(snipe.content)
+      .addFields({ name: "Original Poster", value: `<@${snipe.authorId}>` });
+
+    if (snipe.deletedAt) {
+      embed.addFields({
+        name: "Deleted At",
+        value: snipe.deletedAt.toLocaleString(),
+      });
+    }
+
+    embed
+      .setFooter({
+        text: `Sniped by ${interaction.user.tag}`,
+        iconURL: interaction.user.displayAvatarURL(),
+      })
+      .setColor("RANDOM");
+
+    interaction.reply({ embeds: [embed] });
   },
 };

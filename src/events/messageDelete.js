@@ -1,6 +1,11 @@
 const { MessageEmbed } = require('discord.js');
 const { MongoClient } = require('mongodb');
 const uri = process.env.MONGO_URI;
+const Snipe = require("../models/snipeModel");
+
+
+const ProfanityFilter = require("../helpers/profanityFilter");
+const profanityFilter = new ProfanityFilter();
 
 module.exports = async (client, message) => {
   if (!message || !message.author || message.author.bot) return;
@@ -21,15 +26,6 @@ module.exports = async (client, message) => {
 
   const guildSettings = await settings.findOne({ guildId });
   const auditChannelEntry = await auditChannels.findOne({ guildId });
-
-  // Store the deleted message in the client.snipes Map
-  const snipes = client.snipes.get(channelId) || [];
-  snipes.unshift({
-    content: message.content,
-    author: message.author,
-    image: message.attachments.first()?.url || null,
-  });
-  client.snipes.set(channelId, snipes.slice(0, 10)); // Limit to the 10 most recent snipes
 
   try {
     const auditChannel = guild.channels.cache.get(auditChannelEntry.auditChannelId);
@@ -84,11 +80,23 @@ module.exports = async (client, message) => {
         return;
       }
     }
-    
-    await auditChannel.send({ embeds: [embed] });
-    } catch (error) {
-    console.error('Error processing message delete event:', error);
-    } finally {
-    await mongoClient.close();
-    }
+
+    const snipeData = {
+      channelId: message.channel.id,
+      messageId: message.id,
+      content: message.content || '',
+      author: {
+        id: message.author.id,
+        tag: message.author.tag,
+      },
+      deletedAt: new Date(),
     };
+    await Snipe.create(snipeData);    
+
+    await auditChannel.send({ embeds: [embed] });
+  } catch (error) {
+    console.error('Error processing message delete event:', error);
+  } finally {
+    await mongoClient.close();
+  }
+};
